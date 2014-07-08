@@ -1,0 +1,30 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+	<body>
+		<canvas id="myCanvas" width="300" height="150"/>
+		<script>
+			function init()	{
+
+			}
+			var canvas = document.getElementById('myCanvas');
+			canvas.width = window.innerWidth-40;
+    		canvas.height = window.innerHeight-40;
+    		var context = canvas.getContext("2d");
+			canvas.oncontextmenu = function(e)	{
+				clear();
+				var mouseX = e.clientX;
+				var mouseY = e.clientY;
+				context.beginPath();
+
+				context.arc(mouseX, mouseY, 30, 0, 2*Math.PI);
+				context.stroke();
+				return false;
+			}
+			function clear()	{
+				context.clearRect(0,0,canvas.width,canvas.height);
+			}
+		</script>
+	</body>
+</html>

@@ -1,0 +1,9 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+	<body>
+		<canvas id="cnv" height="800" width="800"></canvas>
+		<script src="clock.js"></script>
+	</body>
+</html>

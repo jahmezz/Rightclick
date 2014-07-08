@@ -1,0 +1,37 @@
+<html>
+	<head>
+		<link rel="stylesheet" type="text/css" href="style.css">
+	</head>
+	<body>
+		<div id="textDiv"></div>
+		<script>
+			Game = {};
+			Game.update = function(cooldown)	{
+				var part = document.getElementById('textDiv');
+				part.innerHTML = cooldown;
+			}
+			Game.run = (function() {
+				var cooldown = 1700, startTime = (new Date).getTime(),
+					canShoot = false;
+
+				return function() {
+					if(!canShoot)	{
+						var endTime = (new Date).getTime();
+						cooldown = cooldown - (endTime - startTime);
+						startTime = endTime;
+						if(cooldown <= 0)	{
+						canShoot = true;
+						cooldown = 0;
+					}
+						Game.update(cooldown);
+					}
+					
+				};
+			})();
+			// Start the game loop
+			Game._intervalId = setInterval(Game.run, 1000 / Game.fps);
+
+
+    	</script>
+    </body>
+    </html>
