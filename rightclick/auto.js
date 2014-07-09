@@ -6,10 +6,12 @@ var AATK = (function()	{
 		moveSpeed: 180, //move speed in pixels per second
 		speedx: 0,
 		speedy: 0,
+		canShoot: true,
+
 	};
 
-	//hud object
-	var hud = 	{
+	//heads-up display object
+	var display = 	{
 		cooldown: 0
 	};
 
@@ -20,7 +22,7 @@ var AATK = (function()	{
 	canvas.height=window.innerHeight;
 	document.body.appendChild(canvas);
 	var timerDiv = document.createElement("div");
-	timerDiv.innerHTML=hud.cooldown;
+	timerDiv.innerHTML=display.cooldown;
 	document.body.appendChild(timerDiv);
 	// Cross-browser support for requestAnimationFrame
 	var w = window;
@@ -36,14 +38,17 @@ var AATK = (function()	{
 		var distancey = champ.desty-champ.y;
 		total = Math.sqrt(Math.pow(distancex,2)+Math.pow(distancey,2));
 		champ.travelTime = total/champ.moveSpeed;
-		hud.blinktime = 0.25;
+		display.blinktime = 0.25;
 
-		if(!champ.canShoot)
-		hud.cooldown = champ.cooldown;
+		if(champ.canShoot)	{
+			display.cooldown = champ.cooldown;
+		}
+
+		champ.canShoot = false;
 		champ.speedx=distancex/champ.travelTime;
 		champ.speedy=distancey/champ.travelTime;
 		return false;
-	}
+	};
 
 	//Set current time
 	var then = Date.now();
@@ -55,7 +60,7 @@ var AATK = (function()	{
 		champ.destx = champ.x;
 		champ.desty = champ.y;
 		gameLoop();
-	}
+	};
 
 	//main game loop
 	function gameLoop()	{
@@ -63,33 +68,34 @@ var AATK = (function()	{
 		var msElapsed = now - then;
 
 		update(msElapsed/1000);
-		render();
 
 		then = now;
 
 		// Differential framerate
-		requestAnimationFrame(gameLoop);
-	}
+		setTimeout(gameLoop, msElapsed/1000);
+		requestAnimationFrame(render);
+	};
 
 	//update game logic
 	function update(secondsPassed)	{
 		champ.x+=champ.speedx*secondsPassed;
 		champ.y+=champ.speedy*secondsPassed;
 		champ.travelTime-=secondsPassed;
-		hud.blinktime-=secondsPassed;
+		display.blinktime-=secondsPassed;
 		if(champ.travelTime <= 0)	{
 			champ.x = champ.destx;
 			champ.y = champ.desty;
 			champ.speedx=champ.speedy=0;
 		}
-		if(hud.cooldown > 0)	{
-			hud.cooldown -= secondsPassed*1000;
-			hud.percentCd = (champ.cooldown-hud.cooldown)/champ.cooldown;
+		if(display.cooldown > 0)	{
+			display.cooldown -= secondsPassed*1000;
+			display.percentCd = (champ.cooldown-display.cooldown)/champ.cooldown;
 		}
 		else {
-			hud.cooldown=0;
+			display.cooldown=0;
+			champ.canShoot = true;
 		}
-	}
+	};
 
 	//draw game
 	function render()	{
@@ -99,16 +105,16 @@ var AATK = (function()	{
 		ctx.beginPath();
 		ctx.strokeStyle="black";
 		ctx.arc(canvas.width-100, canvas.height-100, 50,
-			0, 2*Math.PI*hud.percentCd);
+			0-(Math.PI/2), -(Math.PI/2)+(2*Math.PI*display.percentCd));
 		ctx.stroke();
 		//champ
 		ctx.beginPath();
 		ctx.arc(champ.x, champ.y, 20, 0, 2*Math.PI);
 		ctx.fill();
 		//destination marker
-		if(hud.blinktime > 0)	{
+		if(display.blinktime > 0)	{
 			ctx.beginPath();
-			ctx.arc(champ.destx, champ.desty, 20*(hud.blinktime*4), 0, 2*Math.PI);
+			ctx.arc(champ.destx, champ.desty, 20*(display.blinktime*4), 0, 2*Math.PI);
 			ctx.strokeStyle="#FF0000";
 			ctx.stroke();
 		}
@@ -116,6 +122,7 @@ var AATK = (function()	{
 
 	//public functions
 	return	{
+		champ: champ,
 		init: init,
 		update: update,
 		render: render
