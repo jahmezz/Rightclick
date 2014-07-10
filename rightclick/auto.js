@@ -7,6 +7,8 @@ var AATK = (function()	{
 		speedx: 0,
 		speedy: 0,
 		canShoot: true,
+		showRange: false,
+		attackRange: 200
 
 	};
 
@@ -17,6 +19,8 @@ var AATK = (function()	{
 
 	//initialize canvas
 	var canvas = document.createElement('canvas');
+	canvas.setAttribute('tabindex','0');
+	canvas.focus();
 	var ctx = canvas.getContext("2d");
 	canvas.width=window.innerWidth;
 	canvas.height=window.innerHeight;
@@ -30,8 +34,22 @@ var AATK = (function()	{
 	w.webkitRequestAnimationFrame || w.msRequestAnimationFrame ||
 	w.mozRequestAnimationFrame;
 
+
+	//press a for attack
+	canvas.addEventListener("keydown", keyDownListener);
+
+	function keyDownListener(e)	{
+		var code = e.keyCode;
+		switch(code)	{
+			case 65: champ.showRange = true;
+		}
+	}
 	//right click move
 	canvas.oncontextmenu = function(e)	{
+		if(champ.showRange)	{
+			champ.showRange=false;
+			return false;
+		}
 		champ.destx = e.pageX;
 		champ.desty = e.pageY;
 		var distancex = champ.destx-champ.x;
@@ -59,21 +77,21 @@ var AATK = (function()	{
 		champ.y = canvas.height/2;
 		champ.destx = champ.x;
 		champ.desty = champ.y;
+		requestAnimationFrame(drawLoop);
 		gameLoop();
 	};
 
+	var fps = 50;
 	//main game loop
 	function gameLoop()	{
 		var now = Date.now();
 		var msElapsed = now - then;
 
-		update(msElapsed/1000);
-
+		update(msElapsed/1000)
 		then = now;
 
-		// Differential framerate
+		// Constant
 		setTimeout(gameLoop, msElapsed/1000);
-		requestAnimationFrame(render);
 	};
 
 	//update game logic
@@ -98,7 +116,7 @@ var AATK = (function()	{
 	};
 
 	//draw game
-	function render()	{
+	function drawLoop()	{
 		//refresh screen
 		ctx.clearRect(0,0,canvas.width, canvas.height);
 		//cooldown indicator
@@ -111,6 +129,16 @@ var AATK = (function()	{
 		ctx.beginPath();
 		ctx.arc(champ.x, champ.y, 20, 0, 2*Math.PI);
 		ctx.fill();
+		//attack range
+		if(champ.showRange)	{
+			ctx.beginPath();
+			ctx.save();
+			ctx.globalAlpha = 0.3;
+			ctx.fillStyle="blue";
+			ctx.arc(champ.x, champ.y, champ.attackRange, 0, 2*Math.PI);
+			ctx.fill();
+			ctx.restore();
+		}
 		//destination marker
 		if(display.blinktime > 0)	{
 			ctx.beginPath();
@@ -118,6 +146,7 @@ var AATK = (function()	{
 			ctx.strokeStyle="#FF0000";
 			ctx.stroke();
 		}
+		requestAnimationFrame(drawLoop);
 	}
 
 	//public functions
@@ -125,7 +154,7 @@ var AATK = (function()	{
 		champ: champ,
 		init: init,
 		update: update,
-		render: render
+		drawLoop: drawLoop
 	}
 })();
 
