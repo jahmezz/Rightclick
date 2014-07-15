@@ -25,14 +25,15 @@ var AATK = (function()	{
 			this.stopped=true;
 			this.target=-1;
 			this.showRange=false;
-		}
+		},
+		setState: function()	{}
 	};
 
 
 
 	//heads-up display object
 	var display = 	{
-		cooldown: 0
+		cooldown: champ.cooldown
 	};
 
 	//initialize canvas
@@ -128,8 +129,8 @@ var AATK = (function()	{
 	function inRange(x, y)	{
 		var enemiesInRange = [];
 		for(var i = 0; i < enemy.length; i++)	{
-			var distancex = enemy[i].x-champ.x;
-			var distancey = enemy[i].y-champ.y;
+			var distancex = Math.abs(enemy[i].x-champ.x)-20;
+			var distancey = Math.abs(enemy[i].y-champ.y)-20;
 			var distance = Math.sqrt(Math.pow(distancex,2)+Math.pow(distancey,2));
 			if(distance <= champ.attackRange)	{
 				enemiesInRange[enemiesInRange.length] = i;
@@ -216,21 +217,28 @@ var AATK = (function()	{
 		display.blinktime-=secondsPassed;
 		if(champ.aggro && champ.target === -1)	{
 			champ.target = findTarget(champ.x, champ.y);
+			if(champ.target > -1)	{
+				champ.setState("attack");
+			}
 		}
+
 		if(champ.travelTime <= 0 && !champ.stopped)	{
+			champ.setState("idle");
 			champ.x = champ.destx;
 			champ.y = champ.desty;
 			champ.speedx=champ.speedy=0;
 			champ.aggro = true;
 		}
-		if(display.cooldown > 0)	{
-			display.cooldown -= secondsPassed*1000;
-			display.percentCd = (champ.cooldown-display.cooldown)/champ.cooldown;
+		//on cooldown
+		if(display.cooldown < champ.cooldown)	{
+			display.cooldown += secondsPassed*1000;
 		}
+		//attack up
 		else {
-			display.cooldown=0;
+			display.cooldown=champ.cooldown;
 			champ.canShoot = true;
 		}
+		display.percentCd = display.cooldown/champ.cooldown;
 	};
 
 	//draw game
