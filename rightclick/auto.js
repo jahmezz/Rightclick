@@ -3,7 +3,7 @@ var AATK = (function()	{
 	//champion object
 	var champ = {
 		cooldown: 1700,
-		moveSpeed: 180, //move speed in pixels per second
+		moveSpeed: 160, //move speed in pixels per second
 		x: 0,
 		y: 0,
 		destx: 0,
@@ -22,6 +22,7 @@ var AATK = (function()	{
 			this.desty=this.y;
 			this.speedx=this.speedy=this.travelTime=0;
 			this.aggro=false;
+			display.blinktime=0;
 			this.stopped=true;
 			this.target=-1;
 			this.showRange=false;
@@ -169,6 +170,8 @@ var AATK = (function()	{
 		var distancey = champ.desty-champ.y;
 		total = Math.sqrt(Math.pow(distancex,2)+Math.pow(distancey,2));
 		champ.travelTime = total/champ.moveSpeed;
+		display.blinkx=champ.destx;
+		display.blinky=champ.desty;
 		display.blinktime = 0.25;
 
 		//shoot event
