@@ -9,17 +9,16 @@ var AATK = (function()	{
 		speedx: 0,
 		speedy: 0,
 		attackRange: 200,
-		target: null,
-		aMove: false,
+		target: -1,
 		state: "",
 		stop: function()	{
+			console.log(this);
 			this.destx=this.x;
 			this.desty=this.y;
 			this.speedx=this.speedy=this.travelTime=0;
 			this.aggro=false;
-			display.blinktime=0;
-			this.stopped=true;
 			this.target=-1;
+			this.stopped = true;
 			this.showRange=false;
 		},
 
@@ -66,8 +65,15 @@ var AATK = (function()	{
 	function keyDownListener(e)	{
 		var code = e.keyCode;
 		switch(code)	{
-			case 65: champ.showRange = true; break;
-			case 83: champ.stop(); break;
+			//a
+			case 65:
+				champ.showRange = true;
+				break;
+			//s
+			case 83:
+				champ.stop();
+				champ.showRange = false;
+				break;
 		}
 	};
 
@@ -78,33 +84,116 @@ var AATK = (function()	{
 	function clickListener(e)	{
 		var clickx = e.pageX;
 		var clicky = e.pageY;
+		//reset champ state
+		champ.stopped = false;
 		switch(e.which)	{
 			case 1:
 				if(champ.showRange)	{
 					champ.showRange = false;
-					champ.state="aMove";
+					//attack move
+					champ.aggro = true;
 					registerMove(clickx, clicky);
 				}
 				break;
 
 			case 3:
+				display.attackCast = 0;
 				champ.showRange = false;
-				champ.state = "move";
-				champ.target = clickedEnemy(clickx, clicky);
-				champ.state = (champ.target > -1) ? "attack" : "move";
+				champ.aggro = false;
 				registerMove(clickx, clicky);
 			break;
 		}
 	};
 
+	//handles all clicks
+	function registerMove(x, y)	{
+		//check enemy clicked right or left click
+		champ.target = clickedEnemy(x, y);
+		//set destination
+		champ.destx = x;
+		champ.desty = y;
+		//calculate travel
+		var distancex = champ.destx-champ.x;
+		var distancey = champ.desty-champ.y;
+		total = Math.sqrt(Math.pow(distancex,2)+Math.pow(distancey,2));
+		champ.travelTime = total/champ.moveSpeed;
+		champ.speedx=distancex/champ.travelTime;
+		champ.speedy=distancey/champ.travelTime;
+		//add destination marker
+		display.blinkx=x;
+		display.blinky=y;
+		display.blinkTime = 0.25;
+	};
+
+	//returns clicked enemy or -1 if not clicked
 	function clickedEnemy(x, y)	{
 		for(var i = 0; i < enemy.length; i++)	{
 			if(Math.abs(enemy[i].x-x) <= 20 && Math.abs(enemy[i].y-y) <= 20)	{
-				champ.target = i;
 				return i;
 			}
 		}
 		return -1;
+	};
+
+	//update game logic
+	function update(secondsPassed)	{
+
+		//display logic
+		//cooldown
+		if(display.cooldown < champ.cooldown)	{
+			display.cooldown += secondsPassed*1000;
+		}
+		//off cooldown
+		else {
+			display.cooldown=champ.cooldown;
+			champ.canShoot = true;
+		}
+		display.percentCd = display.cooldown/champ.cooldown;
+
+		//destination marker
+		display.blinkTime -= secondsPassed;
+
+		//pressed s
+		if(champ.stopped)	{
+			//do nothing
+			return;
+		}
+		//if aggro and no target, look for target
+		if(champ.aggro && champ.target < 0)	{
+			champ.target = findTarget(champ.x, champ.y);
+		}
+
+		//reached destination
+		if(champ.travelTime < 0)	{
+			champ.travelTime = 0;
+			champ.speedx = champ.speedy = 0;
+			champ.x = champ.destx;
+			champ.y = champ.desty;
+			champ.aggro = true;
+		}
+
+		//attack target if in range
+		if(targetInRange(champ.target))	{
+			//stop moving
+			champ.speedx=champ.speedy=0;
+			//start shooting if cd up
+			if(champ.canShoot)	{
+				display.attackCast += secondsPassed*1000;
+				if(display.attackCast >= champ.cooldown*.2)	{
+					champ.canShoot=false;
+					display.cooldown=0;
+					display.attackCast=0;
+				}
+			}
+		}
+
+		//not in range or no target
+		else if(champ.travelTime >= 0)	{
+			//move towards destination
+			moveStep(secondsPassed);
+		}
+
+		
 	};
 
 	function findTarget(x, y)	{
@@ -116,6 +205,7 @@ var AATK = (function()	{
 		else return -1;
 	};
 
+	//return array of enemies in range
 	function inRange(x, y)	{
 		var enemiesInRange = [];
 		for(var i = 0; i < enemy.length; i++)	{
@@ -129,6 +219,7 @@ var AATK = (function()	{
 		return enemiesInRange;
 	};
 
+	//return nearest of a set of enemies
 	function nearestEnemy(enemiesInRange)	{
 		var enemyIndex = enemiesInRange[0];
 		console.log(enemyIndex);
@@ -152,25 +243,6 @@ var AATK = (function()	{
 		return nearest;
 	};
 
-	//inputs click location as move
-	function registerMove(x, y)	{
-		//set up champ move
-		champ.destx = x;
-		champ.desty = y;
-		var distancex = champ.destx-champ.x;
-		var distancey = champ.desty-champ.y;
-		total = Math.sqrt(Math.pow(distancex,2)+Math.pow(distancey,2));
-		champ.travelTime = total/champ.moveSpeed;
-		champ.speedx=distancex/champ.travelTime;
-		champ.speedy=distancey/champ.travelTime;
-
-		//add destination marker
-		display.blinkx=champ.destx;
-		display.blinky=champ.desty;
-		display.blinkTime = 0.25;
-
-	};
-
 	//returns whether champ's target is in range
 	function targetInRange(target)	{
 		if(target < 0) return false;
@@ -183,71 +255,7 @@ var AATK = (function()	{
 		return false;
 	};
 
-	//update game logic
-	function update(secondsPassed)	{
-
-		display.blinkTime -= secondsPassed;
-		//attack
-		switch(champ.state)	{
-			//right-click enemy
-			case "attack":
-				//in range
-				if(targetInRange(champ.target) && champ.canShoot)	{
-					//begin shot
-					champ.speedx=champ.speedy=0;
-					display.attackCast += secondsPassed*1000;
-					if(display.attackCast >= champ.cooldown*.2)	{
-						champ.canShoot=false;
-						display.cooldown=0;
-						display.attackCast=0;
-					}
-				}
-				//not in range
-				else {
-					//move towards destination
-					moveStep(secondsPassed);
-				}
-				break;
-			//move
-			case "move":
-				//move towards destination
-				moveStep(secondsPassed);
-				break;
-			//idle
-			case "idle":
-				break;
-			//attack move
-			case"aMove":
-				moveStep(secondsPassed);
-				break;
-			//stop
-			case "stop":
-				break;
-		}
-		//reach destination
-		if(champ.travelTime <= 0)	{
-			champ.state==="idle";
-			champ.travelTime=0;
-			champ.speedx=champ.speedy=0;
-		}
-
-//		if(champ.state==="aMove" && champ.target === -1)	{
-//			champ.target = findTarget(champ.x, champ.y);
-//		}
-		
-		//display logic
-		//cooldown
-		if(display.cooldown < champ.cooldown)	{
-			display.cooldown += secondsPassed*1000;
-		}
-		else {
-			display.cooldown=champ.cooldown;
-			champ.canShoot = true;
-		}
-		display.percentCd = display.cooldown/champ.cooldown;
-	};
-
-	//represents moving for a certain amount of time
+	//represents movement in one loop cycle
 	function moveStep(secondsPassed)	{
 		champ.x += champ.speedx*secondsPassed;
 		champ.y += champ.speedy*secondsPassed;
@@ -291,8 +299,8 @@ var AATK = (function()	{
 			ctx.restore();
 		}
 		//destination marker
-		if(champ.state === "aMove" || champ.state === "attack")	ctx.strokeStyle="#FF0000";
-		else ctx.strokeStyle = "lightgreen";
+		ctx.strokeStyle="#FF0000";
+		ctx.strokeStyle = "lightgreen";
 		if(display.blinkTime > 0)	{
 			ctx.beginPath();
 			ctx.arc(display.blinkx, display.blinky, 20*(display.blinkTime*4), 0, 2*Math.PI);
@@ -320,14 +328,14 @@ var AATK = (function()	{
 		update(msElapsed/1000)
 		then = now;
 
-		// Constant
+		// Constant time loop
 		setTimeout(gameLoop, 1000/fps);
 	};
 
-	//Set current time
+	//Set init time
 	var then = Date.now();
 
-	//initialize champ location
+	//start game
 	function init()	{
 		champ.x = canvas.width/2;
 		champ.y = canvas.height/2;
