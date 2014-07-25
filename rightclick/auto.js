@@ -99,6 +99,7 @@ var AATK = (function()	{
 			case 3:
 				display.attackCast = 0;
 				champ.showRange = false;
+				champ.attacking = false;
 				champ.aggro = false;
 				registerMove(clickx, clicky);
 			break;
@@ -109,6 +110,7 @@ var AATK = (function()	{
 	function registerMove(x, y)	{
 		//check enemy clicked right or left click
 		champ.target = clickedEnemy(x, y);
+		if(champ.target >= 0) champ.aggro = false;
 		//set destination
 		champ.destx = x;
 		champ.desty = y;
@@ -156,26 +158,28 @@ var AATK = (function()	{
 		//pressed s
 		if(champ.stopped)	{
 			//do nothing
+			display.attackCast = 0;
 			return;
 		}
+
+		//reached destination
+		if(champ.travelTime <= 0)	{
+			champ.travelTime = 0;
+			champ.speedx = champ.speedy = 0;
+			champ.destx = champ.x;
+			champ.desty = champ.y;
+			champ.aggro = true;
+		}
+
 		//if aggro and no target, look for target
 		if(champ.aggro && champ.target < 0)	{
 			champ.target = findTarget(champ.x, champ.y);
 		}
 
-		//reached destination
-		if(champ.travelTime < 0)	{
-			champ.travelTime = 0;
-			champ.speedx = champ.speedy = 0;
-			champ.x = champ.destx;
-			champ.y = champ.desty;
-			champ.aggro = true;
-		}
-
 		//attack target if in range
 		if(targetInRange(champ.target))	{
 			//stop moving
-			champ.speedx=champ.speedy=0;
+			champ.attacking = true;
 			//start shooting if cd up
 			if(champ.canShoot)	{
 				display.attackCast += secondsPassed*1000;
@@ -183,12 +187,18 @@ var AATK = (function()	{
 					champ.canShoot=false;
 					display.cooldown=0;
 					display.attackCast=0;
+					enemy.splice(champ.target, 1);
+					champ.target = -1;
+					champ.attacking = false;
+					if(!champ.aggro)	{
+						champ.travelTime = 0;
+					}
 				}
 			}
 		}
 
 		//not in range or no target
-		else if(champ.travelTime >= 0)	{
+		else if(champ.travelTime >= 0 && !champ.attacking)	{
 			//move towards destination
 			moveStep(secondsPassed);
 		}
@@ -274,17 +284,23 @@ var AATK = (function()	{
 			//progress
 
 		}
+
 		//cooldown indicator
+		//draw outline, then fill
+		ctx.fillStyle="black";
 		ctx.beginPath();
-		ctx.strokeStyle="black";
+		ctx.moveTo(canvas.width-100, canvas.height-100);
+      	ctx.lineTo(canvas.width-100, canvas.height-50);
 		ctx.arc(canvas.width-100, canvas.height-100, 50,
 			0-(Math.PI/2), -(Math.PI/2)+(2*Math.PI*display.percentCd));
-		ctx.stroke();
+		ctx.fill();
+
 		//champ
 		ctx.beginPath();
 		ctx.fillStyle="black";
 		ctx.arc(champ.x, champ.y, 20, 0, 2*Math.PI);
 		ctx.fill();
+
 		//attack range
 		if(champ.showRange)	{
 			ctx.beginPath();
