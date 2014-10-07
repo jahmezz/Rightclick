@@ -19,19 +19,6 @@ var animate = window.requestAnimationFrame ||
   window.mozRequestAnimationFrame ||
   function(callback) { window.setTimeout(callback, 1000/60) };
 
-//step = every callback this happens
-var step = function() {
-  update();
-  render();
-  animate(step);
-};
-
-var update = function() {
-  player.update();
-  computer.update(ball);
-  ball.update(player.paddle, computer.paddle);
-};
-
 // objects
 function Paddle(x, y, width, height) {
   this.x = x;
@@ -51,7 +38,7 @@ function Ball(x, y) {
   this.x = x;
   this.y = y;
   this.x_speed = 0;
-  this.y_speed = 3;
+  this.y_speed = 3.0;
   this.radius = 5;
 }
 
@@ -62,44 +49,10 @@ Ball.prototype.render = function() {
   context.fill();
 };
 
-function Player() {
-   this.paddle = new Paddle(175, 580, 50, 10);
-}
-
-function Computer() {
-  this.paddle = new Paddle(175, 10, 50, 10);
-}
-
-Player.prototype.render = function() {
-  this.paddle.render();
-};
-
-Computer.prototype.render = function() {
-  this.paddle.render();
-};
-
-
-
-var player = new Player();
-var computer = new Computer();
-var ball = new Ball(200, 300);
-
-var render = function() {
-  context.fillStyle = "#000000";
-  context.fillRect(0, 0, width, height);
-  player.render();
-  computer.render();
-  ball.render();
-};
-
-Ball.prototype.update = function() {
-  this.x += this.x_speed;
-  this.y += this.y_speed;
-};
-
 Ball.prototype.update = function(paddle1, paddle2) {
   this.x += this.x_speed;
   this.y += this.y_speed;
+  this.y_speed += 0.001*this.y_speed;
   var top_x = this.x - 5;
   var top_y = this.y - 5;
   var bottom_x = this.x + 5;
@@ -123,19 +76,75 @@ Ball.prototype.update = function(paddle1, paddle2) {
   if(top_y > 300) {
     if(top_y < (paddle1.y + paddle1.height) && bottom_y > paddle1.y && top_x < (paddle1.x + paddle1.width) && bottom_x > paddle1.x) {
       // hit the player's paddle
-      this.y_speed = -3;
-      this.x_speed += (paddle1.x_speed / 2);
+      this.y_speed = -this.y_speed;
+      this.x_speed += (this.x-(paddle1.x+paddle1.width/2)) / (paddle1.width/2);
       this.y += this.y_speed;
+      balls.push(new Ball(this.x, this.y));
     }
   } else {
     if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width) && bottom_x > paddle2.x) {
       // hit the computer's paddle
-      this.y_speed = 3;
+      this.y_speed = -this.y_speed;
       this.x_speed += (paddle2.x_speed / 2);
       this.y += this.y_speed;
     }
   }
 };
+
+
+//step = every callback this happens
+var step = function() {
+  update();
+  render();
+  animate(step);
+};
+
+var player = new Player();
+var computer = new Computer();
+var firstBall = new Ball(200, 300);
+var balls = [];
+balls[0] = firstBall;
+
+var update = function() {
+  player.update();
+  computer.update(balls[0]);
+  for(var i = 0; i < balls.length; i++) {
+    balls[i].update(player.paddle, computer.paddle);
+  }
+};
+
+
+
+function Player() {
+   this.paddle = new Paddle(175, 580, 50, 10);
+}
+
+function Computer() {
+  this.paddle = new Paddle(175, 10, 50, 10);
+}
+
+Player.prototype.render = function() {
+  this.paddle.render();
+};
+
+Computer.prototype.render = function() {
+  this.paddle.render();
+};
+
+
+
+
+
+var render = function() {
+  context.fillStyle = "#000000";
+  context.fillRect(0, 0, width, height);
+  player.render();
+  computer.render();
+  for(var i = 0; i < balls.length; i++) {
+    balls[i].render();
+  }
+};
+
 
 var keysDown = {};
 
@@ -148,6 +157,7 @@ window.addEventListener("keyup", function(event) {
 });
 
 Player.prototype.update = function() {
+  this.paddle.move(0, 0);
   for(var key in keysDown) {
     var value = Number(key);
     if(value == 37) { // left arrow
