@@ -7,6 +7,9 @@ canvas.width = width;
 canvas.height = height;
 var context = canvas.getContext('2d');
 
+
+var bounce = true;
+
 window.onload = function() {
   document.body.appendChild(canvas);
   animate(step);
@@ -79,7 +82,9 @@ Ball.prototype.update = function(paddle1, paddle2) {
       this.y_speed = -this.y_speed;
       this.x_speed += (this.x-(paddle1.x+paddle1.width/2)) / (paddle1.width/2);
       this.y += this.y_speed;
-      balls.push(new Ball(this.x, this.y));
+      if(bounce)
+        balls.push(new Ball(this.x, this.y));
+      bounce = false;
     }
   } else {
     if(top_y < (paddle2.y + paddle2.height) && bottom_y > paddle2.y && top_x < (paddle2.x + paddle2.width) && bottom_x > paddle2.x) {
@@ -87,6 +92,7 @@ Ball.prototype.update = function(paddle1, paddle2) {
       this.y_speed = -this.y_speed;
       this.x_speed += (paddle2.x_speed / 2);
       this.y += this.y_speed;
+      bounce = true;
     }
   }
 };
@@ -161,9 +167,9 @@ Player.prototype.update = function() {
   for(var key in keysDown) {
     var value = Number(key);
     if(value == 37) { // left arrow
-      this.paddle.move(-4, 0);
+      this.paddle.move(-10, 0);
     } else if (value == 39) { // right arrow
-      this.paddle.move(4, 0);
+      this.paddle.move(10, 0);
     } else {
       this.paddle.move(0, 0);
     }
