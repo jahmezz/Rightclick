@@ -4,11 +4,19 @@
 	</head>
 	<body>
 		<div id="textDiv"></div>
+		<div id="debug"></div>
+		<button id="shoot" disabled>Shoot!</button>
 		<script>
 			Game = {};
-			Game.update = function(cooldown)	{
+			Game.update = function(cooldown, canShoot)	{
 				var part = document.getElementById('textDiv');
 				part.innerHTML = cooldown;
+				var debug = document.getElementById('debug');
+				debug.innerHTML = canShoot;
+				if(canShoot) {
+					var shoot = document.getElementById('shoot');
+					shoot.disabled = false;
+				}
 			}
 			Game.run = (function() {
 				var cooldown = 1700, startTime = (new Date).getTime(),
@@ -23,7 +31,7 @@
 						canShoot = true;
 						cooldown = 0;
 					}
-						Game.update(cooldown);
+						Game.update(cooldown, canShoot);
 					}
 					
 				};
@@ -33,5 +41,6 @@
 
 
     	</script>
+
     </body>
     </html>
